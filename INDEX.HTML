@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Engineering Master - CoT, ReAct, ToT & More</title>
+    <style>
+        :root {
+            --color-primary: #2180a8;
+            --color-primary-hover: #1a6682;
+            --color-secondary: #5e5240;
+            --color-bg: #fcfcf9;
+            --color-surface: #ffffff;
+            --color-text: #134252;
+            --color-text-light: #626c71;
+            --color-border: #d4d1ca;
+            --color-success: #208085;
+            --color-warning: #a84b2f;
+            --color-error: #c01530;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-md);
+        }
+
+        header {
+            background: linear-gradient(135deg, #134252 0%, #208085 100%);
+            color: white;
+            padding: var(--space-lg) var(--space-md);
+            border-radius: var(--radius);
+            margin-bottom: var(--space-lg);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: var(--space-sm);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            border-bottom: 2px solid var(--color-border);
+            overflow-x: auto;
+            padding-bottom: var(--space-md);
+        }
+
+        .tab-btn {
+            padding: var(--space-sm) var(--space-md);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--color-text-light);
+            transition: all 0.3s ease;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .tab-btn.active {
+            color: var(--color-primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -var(--space-md);
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--color-primary);
+            border-radius: 2px;
+        }
+
+        .tab-btn:hover {
+            color: var(--color-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .grid.full {
+            grid-template-columns: 1fr;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: var(--space-lg);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: var(--space-md);
+            color: var(--color-primary);
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: var(--space-sm);
+            color: var(--color-secondary);
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: var(--space-sm);
+            color: var(--color-text);
+        }
+
+        textarea, input, select {
+            width: 100%;
+            padding: var(--space-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+            margin-bottom: var(--space-md);
+            background: var(--color-bg);
+            color: var(--color-text);
+        }
+
+        textarea {
+            min-height: 120px;
+        }
+
+        button {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(33, 128, 168, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .secondary-btn {
+            background: var(--color-secondary);
+        }
+
+        .secondary-btn:hover {
+            background: #6f6752;
+        }
+
+        .output-box {
+            background: #f8f7f4;
+            border-left: 4px solid var(--color-primary);
+            padding: var(--space-md);
+            border-radius: var(--radius);
+            margin-top: var(--space-md);
+            min-height: 100px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: var(--color-text);
+        }
+
+        .success {
+            border-left-color: var(--color-success);
+            background: #f0faf9;
+        }
+
+        .warning {
+            border-left-color: var(--color-warning);
+            background: #faf6f1;
+        }
+
+        .error {
+            border-left-color: var(--color-error);
+            background: #faf5f7;
+        }
+
+        .technique-box {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            padding: var(--space-md);
+            border-radius: var(--radius);
+            margin-bottom: var(--space-md);
+        }
+
+        .technique-title {
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .example {
+            background: #f8f7f4;
+            padding: var(--space-md);
+            border-radius: var(--radius);
+            margin-top: var(--space-sm);
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--color-primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: var(--space-sm);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .stat-card {
+            background: var(--color-bg);
+            padding: var(--space-md);
+            border-radius: var(--radius);
+            text-align: center;
+            border: 1px solid var(--color-border);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--color-primary);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--color-text-light);
+            margin-top: var(--space-sm);
+        }
+
+        .method-list {
+            list-style: none;
+        }
+
+        .method-list li {
+            padding: var(--space-sm) 0;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+        }
+
+        .method-list li:last-child {
+            border-bottom: none;
+        }
+
+        .method-list li::before {
+            content: '→';
+            margin-right: var(--space-md);
+            color: var(--color-primary);
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Prompt Engineering Master</h1>
+            <p class="subtitle">Advanced techniques: CoT, ReAct, Tree-of-Thoughts, Multi-Agent & More</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('cot')">Chain-of-Thought</button>
+            <button class="tab-btn" onclick="switchTab('react')">ReAct</button>
+            <button class="tab-btn" onclick="switchTab('tot')">Tree-of-Thoughts</button>
+            <button class="tab-btn" onclick="switchTab('multi')">Multi-Agent</button>
+            <button class="tab-btn" onclick="switchTab('rag')">RAG</button>
+            <button class="tab-btn" onclick="switchTab('eval')">Evaluation</button>
+        </div>
+
+        <!-- CoT Tab -->
+        <div id="cot" class="tab-content active">
+            <div class="grid">
+                <div class="card">
+                    <h2>Chain-of-Thought (CoT)</h2>
+                    <p>Breaking complex reasoning into step-by-step logical steps improves LLM accuracy by 20-50%.</p>
+                    <div class="technique-box">
+                        <div class="technique-title">Zero-Shot CoT</div>
+                        <p>Add "Let's think step by step" to any prompt</p>
+                        <div class="example">Think step by step before answering: [Your question]</div>
+                    </div>
+                    <div class="technique-box">
+                        <div class="technique-title">Few-Shot CoT</div>
+                        <p>Provide 2-3 examples with reasoning</p>
+                        <div class="example">Q: [Example 1]\nThinking: Step 1... Step 2...\nA: [Answer]</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>CoT Prompt Builder</h2>
+                    <label>Your Question:</label>
+                    <textarea id="cotInput" placeholder="E.g., Design a MARL reward shaping strategy for gridworld..."></textarea>
+                    
+                    <label>Number of Examples:</label>
+                    <select id="cotExamples">
+                        <option value="0">Zero-Shot (No examples)</option>
+                        <option value="1">One Example</option>
+                        <option value="2" selected>Two Examples</option>
+                        <option value="3">Three Examples</option>
+                    </select>
+
+                    <button onclick="generateCoT()">Generate CoT Prompt</button>
+                    <button class="secondary-btn" onclick="copyCot()" style="margin-left: 8px;">Copy</button>
+
+                    <div id="cotOutput" class="output-box" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card full">
+                <h3>Use Cases</h3>
+                <ul class="method-list">
+                    <li>Multi-step math problems and logic puzzles</li>
+                    <li>Algorithm design and RL policy optimization</li>
+                    <li>Code debugging and architecture decisions</li>
+                    <li>Complex reasoning in MARL scenarios</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ReAct Tab -->
+        <div id="react" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h2>ReAct (Reason + Act)</h2>
+                    <p>Combines reasoning traces with actions, observing results to solve tasks requiring tool use.</p>
+                    <div class="technique-box">
+                        <div class="technique-title">ReAct Cycle</div>
+                        <div class="example">Thought: [reasoning]
+Action: [tool call]
+Observation: [result]
+Thought: [next reasoning]</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>ReAct Prompt Builder</h2>
+                    <label>Task Description:</label>
+                    <textarea id="reactInput" placeholder="E.g., Debug a CrewAI agent loop using LangGraph..."></textarea>
+
+                    <label>Available Tools (comma-separated):</label>
+                    <input type="text" id="reactTools" placeholder="E.g., search, code_executor, validator" value="search, calculator, executor">
+
+                    <button onclick="generateReAct()">Generate ReAct Prompt</button>
+                    <button class="secondary-btn" onclick="copyReAct()" style="margin-left: 8px;">Copy</button>
+
+                    <div id="reactOutput" class="output-box" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card full">
+                <h3>Key Components</h3>
+                <ul class="method-list">
+                    <li>Thought: LLM reasons about the problem</li>
+                    <li>Action: Select and execute a tool</li>
+                    <li>Observation: Receive tool output</li>
+                    <li>Loop until task is complete</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ToT Tab -->
+        <div id="tot" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h2>Tree-of-Thoughts (ToT)</h2>
+                    <p>Explores multiple reasoning paths, evaluates and prunes branches for complex problem-solving.</p>
+                    <div class="technique-box">
+                        <div class="technique-title">ToT Process</div>
+                        <div class="example">1. Generate multiple possible thoughts
+2. Evaluate each thought
+3. Prune low-quality branches
+4. Expand most promising paths
+5. Backtrack if needed</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>ToT Prompt Builder</h2>
+                    <label>Problem Statement:</label>
+                    <textarea id="totInput" placeholder="E.g., Find optimal MARL convergence strategy for sparse reward..."></textarea>
+
+                    <label>Number of Branches:</label>
+                    <select id="totBranches">
+                        <option value="2">2 Branches</option>
+                        <option value="3" selected>3 Branches</option>
+                        <option value="5">5 Branches</option>
+                    </select>
+
+                    <button onclick="generateToT()">Generate ToT Prompt</button>
+                    <button class="secondary-btn" onclick="copyToT()" style="margin-left: 8px;">Copy</button>
+
+                    <div id="totOutput" class="output-box" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card full">
+                <h3>Advantages</h3>
+                <ul class="method-list">
+                    <li>Handles non-linear problem spaces effectively</li>
+                    <li>Explores multiple solution paths simultaneously</li>
+                    <li>Intelligent pruning saves computation</li>
+                    <li>Ideal for creative and strategic tasks</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Multi-Agent Tab -->
+        <div id="multi" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h2>Multi-Agent Prompting</h2>
+                    <p>Coordinate multiple specialized LLM agents for complex tasks (e.g., CrewAI, LangChain, AutoGen).</p>
+                    <div class="technique-box">
+                        <div class="technique-title">Agent Roles</div>
+                        <div class="example">Planner: Strategize approach
+Executor: Implement solution
+Validator: Check results
+Reviewer: Provide feedback</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Multi-Agent Orchestrator</h2>
+                    <label>Main Task:</label>
+                    <textarea id="multiInput" placeholder="E.g., Implement multi-agent RL training pipeline..."></textarea>
+
+                    <label>Number of Agents:</label>
+                    <select id="multiAgents">
+                        <option value="2">2 Agents</option>
+                        <option value="3">3 Agents</option>
+                        <option value="4" selected>4 Agents</option>
+                    </select>
+
+                    <button onclick="generateMultiAgent()">Generate Agent Config</button>
+                    <button class="secondary-btn" onclick="copyMultiAgent()" style="margin-left: 8px;">Copy</button>
+
+                    <div id="multiOutput" class="output-box" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card full">
+                <h3>Frameworks Supported</h3>
+                <ul class="method-list">
+                    <li>CrewAI - High-level agent orchestration</li>
+                    <li>LangChain/LangGraph - Flexible agent chains</li>
+                    <li>AutoGen - Microsoft's agent framework</li>
+                    <li>Custom multi-agent systems</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- RAG Tab -->
+        <div id="rag" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h2>RAG (Retrieval-Augmented Generation)</h2>
+                    <p>Augment LLM prompts with retrieved external documents for grounded, factual responses.</p>
+                    <div class="technique-box">
+                        <div class="technique-title">RAG Flow</div>
+                        <div class="example">1. Retrieve relevant documents
+2. Augment prompt with context
+3. Generate response based on docs
+4. Cite sources</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>RAG Prompt Builder</h2>
+                    <label>Query:</label>
+                    <textarea id="ragInput" placeholder="E.g., What are best MARL algorithms for partial observability?"></textarea>
+
+                    <label>Retrieved Context:</label>
+                    <textarea id="ragContext" placeholder="Paste document excerpts here..."></textarea>
+
+                    <button onclick="generateRAG()">Generate RAG Prompt</button>
+                    <button class="secondary-btn" onclick="copyRAG()" style="margin-left: 8px;">Copy</button>
+
+                    <div id="ragOutput" class="output-box" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card full">
+                <h3>RAG Benefits</h3>
+                <ul class="method-list">
+                    <li>Reduces hallucinations with grounded facts</li>
+                    <li>Enables custom knowledge integration</li>
+                    <li>Supports source citation and traceability</li>
+                    <li>Ideal for research, documentation, and compliance</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Evaluation Tab -->
+        <div id="eval" class="tab-content">
+            <div class="card full">
+                <h2>Prompt Evaluation Framework</h2>
+                <p>Systematically evaluate and compare prompt effectiveness across multiple dimensions.</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">76%</div>
+                    <div class="stat-label">Accuracy Variance with Prompts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">45%</div>
+                    <div class="stat-label">CoT Performance Boost</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Core Evaluation Metrics</div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <h2>Evaluation Metrics</h2>
+                    <ul class="method-list">
+                        <li><strong>Accuracy:</strong> Correctness of output</li>
+                        <li><strong>Coherence:</strong> Logical flow and structure</li>
+                        <li><strong>Relevance:</strong> Alignment with query</li>
+                        <li><strong>Completeness:</strong> Coverage of topic</li>
+                        <li><strong>Latency:</strong> Response time</li>
+                        <li><strong>Cost:</strong> API token usage</li>
+                        <li><strong>Safety:</strong> No harmful content</li>
+                        <li><strong>Citation:</strong> Source attribution</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h2>Evaluation Rubric</h2>
+                    <label>Baseline Prompt:</label>
+                    <textarea id="evalBaseline" placeholder="Your original prompt..."></textarea>
+
+                    <label>Test Cases (one per line):</label>
+                    <textarea id="evalTests" placeholder="Test case 1
+Test case 2
+Test case 3"></textarea>
+
+                    <button onclick="generateEvalRubric()">Generate Eval Rubric</button>
+                    <button class="secondary-btn" onclick="copyEvalRubric()" style="margin-left: 8px;">Copy</button>
+
+                    <div id="evalOutput" class="output-box" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="card full">
+                <h3>Best Practices for Evaluation</h3>
+                <ul class="method-list">
+                    <li>Always test with diverse, representative examples</li>
+                    <li>Compare against baseline and alternative prompts</li>
+                    <li>Use quantitative metrics (BLEU, ROUGE) + human eval</li>
+                    <li>Track performance over time and model updates</li>
+                    <li>Document prompt changes and their impact</li>
+                    <li>Use A/B testing for critical applications</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remove active class from buttons
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        function generateCoT() {
+            const input = document.getElementById('cotInput').value;
+            const examples = document.getElementById('cotExamples').value;
+
+            if (!input.trim()) {
+                alert('Please enter your question');
+                return;
+            }
+
+            let prompt = '';
+            if (examples === '0') {
+                prompt = `Question: ${input}\n\nThink step by step before answering:\n\nStep 1: [Initial analysis]\nStep 2: [Key considerations]\nStep 3: [Solution approach]\n\nFinal Answer:`;
+            } else {
+                prompt = `You are an expert problem solver. Solve the following by thinking step by step.\n\nExample:\nQ: [Similar problem]\nThinking: Step 1... Step 2... Step 3...\nA: [Solution]\n\nNow solve:\nQ: ${input}\n\nThinking:`;
+            }
+
+            showOutput('cotOutput', prompt);
+        }
+
+        function generateReAct() {
+            const input = document.getElementById('reactInput').value;
+            const tools = document.getElementById('reactTools').value.split(',').map(t => t.trim());
+
+            if (!input.trim()) {
+                alert('Please enter a task description');
+                return;
+            }
+
+            let prompt = `You are an intelligent agent with access to the following tools: ${tools.join(', ')}.\n\nTask: ${input}\n\nProcess:\n\nThought: [What do I need to do?]\nAction: [Use one of: ${tools.join(', ')}]\nObservation: [What did I learn?]\nThought: [What next?]\nAction: ...\n\nContinue until you solve the task.\n\nStart:`;
+
+            showOutput('reactOutput', prompt);
+        }
+
+        function generateToT() {
+            const input = document.getElementById('totInput').value;
+            const branches = document.getElementById('totBranches').value;
+
+            if (!input.trim()) {
+                alert('Please enter a problem statement');
+                return;
+            }
+
+            let prompt = `You are a strategic problem solver. Explore multiple approaches to solve this problem.\n\nProblem: ${input}\n\nGenerate ${branches} different solution approaches:\n\nApproach 1:\n- Strategy: \n- Pros: \n- Cons: \n- Score: /10\n\nApproach 2:\n- Strategy: \n- Pros: \n- Cons: \n- Score: /10\n`;
+
+            if (branches >= 3) {
+                prompt += `\nApproach 3:\n- Strategy: \n- Pros: \n- Cons: \n- Score: /10\n`;
+            }
+
+            prompt += `\nEvaluate each approach. Prune low-scoring ones. Expand the best approach with detailed steps.`;
+
+            showOutput('totOutput', prompt);
+        }
+
+        function generateMultiAgent() {
+            const input = document.getElementById('multiInput').value;
+            const agents = parseInt(document.getElementById('multiAgents').value);
+
+            if (!input.trim()) {
+                alert('Please enter a main task');
+                return;
+            }
+
+            let agentRoles = ['Planner', 'Executor', 'Validator', 'Reviewer'];
+            let prompt = `Task: ${input}\n\nMulti-Agent Configuration:\n\n`;
+
+            for (let i = 0; i < agents; i++) {
+                prompt += `Agent ${i + 1}: ${agentRoles[i] || `Agent_${i}`}\n`;
+                prompt += `  Responsibility: [Define role]\n`;
+                prompt += `  Instructions: [Specific guidelines]\n`;
+                prompt += `  Output Format: [Expected format]\n\n`;
+            }
+
+            prompt += `Workflow:\n1. ${agentRoles[0]} creates strategy\n2. ${agentRoles[1]} executes\n3. ${agentRoles[2]} validates\n4. ${agentRoles[3]} reviews\n\nCoordination: Agents communicate via structured messages.`;
+
+            showOutput('multiOutput', prompt);
+        }
+
+        function generateRAG() {
+            const input = document.getElementById('ragInput').value;
+            const context = document.getElementById('ragContext').value;
+
+            if (!input.trim()) {
+                alert('Please enter a query');
+                return;
+            }
+
+            let prompt = `Answer the following question based on the provided context.\n\nContext:\n"""`;
+            prompt += context || '[Retrieved documents will be inserted here]';
+            prompt += `"""\n\nQuestion: ${input}\n\nAnswer (with citations):`;
+
+            showOutput('ragOutput', prompt);
+        }
+
+        function generateEvalRubric() {
+            const baseline = document.getElementById('evalBaseline').value;
+            const tests = document.getElementById('evalTests').value.split('\n').filter(t => t.trim());
+
+            if (!baseline.trim()) {
+                alert('Please enter a baseline prompt');
+                return;
+            }
+
+            let rubric = `Evaluation Rubric for: "${baseline}"\n\n`;
+            rubric += `Test Cases:\n`;
+
+            tests.slice(0, 3).forEach((test, i) => {
+                rubric += `${i + 1}. ${test.trim()}\n`;
+            });
+
+            rubric += `\nEvaluation Metrics:\n`;
+            rubric += `- Accuracy (0-10): Does output answer correctly?\n`;
+            rubric += `- Coherence (0-10): Is response logically structured?\n`;
+            rubric += `- Relevance (0-10): Does it stay on topic?\n`;
+            rubric += `- Completeness (0-10): All aspects covered?\n`;
+            rubric += `- Latency: Response time in seconds\n`;
+            rubric += `- Cost: Token usage\n`;
+            rubric += `- Safety: Any harmful content? Yes/No\n`;
+            rubric += `- Citations: Sources properly attributed? Yes/No\n\n`;
+            rubric += `Scoring: Average all metrics (0-10) = Final Score`;
+
+            showOutput('evalOutput', rubric);
+        }
+
+        function showOutput(elementId, content) {
+            const element = document.getElementById(elementId);
+            element.textContent = content;
+            element.style.display = 'block';
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function copyCot() {
+            copyOutput('cotOutput');
+        }
+
+        function copyReAct() {
+            copyOutput('reactOutput');
+        }
+
+        function copyToT() {
+            copyOutput('totOutput');
+        }
+
+        function copyMultiAgent() {
+            copyOutput('multiOutput');
+        }
+
+        function copyRAG() {
+            copyOutput('ragOutput');
+        }
+
+        function copyEvalRubric() {
+            copyOutput('evalOutput');
+        }
+
+        function copyOutput(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Copied to clipboard!');
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('Copied to clipboard!');
+        }
+    </script>
+</body>
+</html>
